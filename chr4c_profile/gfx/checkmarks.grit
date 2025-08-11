@@ -1,0 +1,4 @@
+#
+# Checkmarks 2 x 16x16@4
+#
+-gt -gB4 -Mw2 -Mh2 -pn 16

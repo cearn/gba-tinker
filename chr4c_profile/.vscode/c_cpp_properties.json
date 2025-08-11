@@ -1,0 +1,45 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.26100.0",
+            "compilerPath": "C:/bin/dev/devkitPro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        },
+        {
+            "name": "GBA",
+            "includePath": [
+                "d:/dev/mycode/gba/proj/tonc/code/tonclib/include/",
+                "${workspaceFolder}",
+                "${workspaceFolder}/"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.26100.0",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-arm",
+            "compilerPath": "C:/bin/dev/devkitPro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "compilerPathInCppPropertiesJson": "C:/bin/dev/devkitPro/devkitARM/bin/arm-none-eabi-gcc.exe",
+            "mergeConfigurations": false,
+            "recursiveIncludes": {},
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
