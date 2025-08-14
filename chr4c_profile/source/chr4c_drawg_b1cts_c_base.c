@@ -14,10 +14,10 @@
 #endif
 
 #ifndef GEN_PROCNAME_BASE
-	#define GEN_PROCNAME_BASE chr4c_drawg_b1cts_c_base_thumb_rom
+	#define GEN_PROCNAME_BASE chr4c_drawg_b1cts_c_1p_thumb_rom
 	#endif
 #ifndef GEN_PROCNAME_FAST
-	#define GEN_PROCNAME_FAST chr4c_drawg_b1cts_c_fast_thumb_rom
+	#define GEN_PROCNAME_FAST chr4c_drawg_b1cts_c_8p_thumb_rom
 #endif
 
 // --------------------------------------------------------------------
@@ -29,17 +29,17 @@ GEN_CODE_SEC void GEN_PROCNAME_BASE (uint gid)
 {
 	TTE_BASE_VARS(tc, font);
 	TTE_CHAR_VARS(font, gid, u8, srcD, srcL, charW, charH);
-	uint x0= tc->cursorX, y0= tc->cursorY;
-	uint srcP= font->cellH;
+	uint x0 = tc->cursorX, y0 = tc->cursorY;
+	uint srcP = font->cellH;
 
-	u32 ink= tc->cattr[TTE_INK], raw;
+	u32 ink = tc->cattr[TTE_INK], raw;
 
 	uint ix, iy, iw;
 	for(iw=0; iw<charW; iw += 8)
 	{	
 		for(iy=0; iy<charH; iy++)
 		{
-			raw= srcL[iy];
+			raw = srcL[iy];
 			for(ix=0; raw>0; raw>>=1, ix++)
 				if(raw&1)
 					_schr4c_plot(&tc->dst, x0+ix, y0+iy, ink);
@@ -54,28 +54,28 @@ GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 {
 	TTE_BASE_VARS(tc, font);
 	TTE_CHAR_VARS(font, gid, u8, srcD, srcL, charW, charH);
-	uint x= tc->cursorX, y= tc->cursorY;
-	uint srcP= font->cellH, dstP= tc->dst.pitch/4;
+	uint x = tc->cursorX, y = tc->cursorY;
+	uint srcP = font->cellH, dstP = tc->dst.pitch/4;
 
-	u32 *dstD= (u32*)((u8*)tc->dst.data + y*4 + x/8*dstP*4), *dstL;
+	u32 *dstD = (u32*)((u8*)tc->dst.data + y*4 + x/8*dstP*4), *dstL;
 	x %= 8;
-	u32 lsl= 4*x, lsr= 32-4*x, right= x+charW;
+	u32 lsl = 4*x, lsr = 32-4*x, right = x+charW;
 
 	// Inner loop vars
 	u32 px, pxmask, raw;
-	u32 ink= tc->cattr[TTE_INK];
-	const u32 mask= 0x01010101;
+	u32 ink = tc->cattr[TTE_INK];
+	const u32 mask = 0x01010101;
 
-	uint iy, iw;
-	for(iw=0; iw<charW; iw += 8)	// Loop over strips
+	uint iy;
+	for(uint iw=0; iw<charW; iw += 8)	// Loop over strips
 	{
-		dstL= dstD;		dstD += dstP;
-		srcL= srcD;		srcD += srcP;
+		dstL = dstD;		dstD += dstP;
+		srcL = srcD;		srcD += srcP;
 
-		iy= charH;
+		iy = charH;
 		while(iy--)					// Loop over scanlines
 		{
-			raw= *srcL++;
+			raw = *srcL++;
 			if(raw)
 			{
 				raw |= raw<<12;
@@ -84,7 +84,7 @@ GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 				raw &= mask;
 				px   = raw | px<<3;
 
-				pxmask= px*15;
+				pxmask = px*15;
 				px   *= ink;
 
 				// Write left tile:
@@ -92,7 +92,7 @@ GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 
 				// Write right tile (if any)
 				if(right > 8)
-					dstL[dstP]= (dstL[dstP] &~ (pxmask>>lsr) ) | (px>>lsr);
+					dstL[dstP] = (dstL[dstP] &~ (pxmask>>lsr) ) | (px>>lsr);
 			}
 			dstL++;
 		}

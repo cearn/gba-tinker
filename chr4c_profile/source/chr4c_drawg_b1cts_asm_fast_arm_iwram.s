@@ -2,13 +2,13 @@
 /// Col-major tile character renderer. 1->4bpp recolored, any size, transparent
 /// This is the optimized 'fast' 'version.
 ///
-/// @file chr4c_drawg_b1cts_asm_fast_arm_iwram.s
+/// @file chr4c_drawg_b1cts_asm_8p_arm_iwram.s
 /// @author J Vijn
 /// @date 20250719
 ///
 /// === NOTES ===
 
-#define FEATURE_SMALL_SPECIAL() 1
+#define FEATURE_SMALL_SPECIAL() 0
 
 #define FEATURE_MASK_TEST() 1
 #define FEATURE_MASK_LEFT_CND() 0
@@ -16,8 +16,8 @@
 #include <tonc_asminc.h>
 #include <../src/tte/tte_types.s>
 
-@ IWRAM_CODE void chr4c_drawg_b1cts_asm_fast_arm_iwram(int gid);
-BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_fast_arm_iwram, CSEC_IWRAM)
+@ IWRAM_CODE void chr4c_drawg_b1cts_asm_8p_arm_iwram(int gid);
+BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 	stmfd	sp!, {r4-r11, lr}
 
 	ldr		r5,=gp_tte_context
@@ -170,6 +170,8 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_fast_arm_iwram, CSEC_IWRAM)
 	add		sp, sp, #8
 	ldmfd	sp!, {r4-r11, lr}
 	bx		lr
+
+#if FEATURE_SMALL_SPECIAL() == 1
 #if 1
 .Lleft_only:
 	sub		r2, r2, #1
@@ -219,8 +221,8 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_fast_arm_iwram, CSEC_IWRAM)
 #endif
 	ldmfd	sp!, {r4-r11, lr}
 	bx		lr
+#endif
 
-
-END_FUNC(chr4c_drawg_b1cts_asm_fast_arm_iwram)
+END_FUNC(chr4c_drawg_b1cts_asm_8p_arm_iwram)
 
 @ EOF

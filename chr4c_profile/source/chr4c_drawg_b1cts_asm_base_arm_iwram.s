@@ -3,7 +3,7 @@
 /// This is the optimized 'naive' version: still pixel-by-pixel.
 /// I just want to see how fast I can get that.
 ///
-/// @file chr4c_drawg_b1cts_asm_base_arm_iwram.s
+/// @file chr4c_drawg_b1cts_asm_1p_arm_iwram.s
 /// @author J Vijn
 /// @date 20250719
 ///
@@ -45,8 +45,8 @@
 	}
 #endif
 
-// IWRAM_CODE void chr4c_drawg_b1cts_asm_base_arm_iwram(int gid);
-BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_base_arm_iwram, CSEC_IWRAM)
+// IWRAM_CODE void chr4c_drawg_b1cts_asm_1p_arm_iwram(int gid);
+BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_1p_arm_iwram, CSEC_IWRAM)
 	stmfd	sp!, {r4-r11, lr}
 
 	ldr		r5,=gp_tte_context
@@ -147,6 +147,6 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_base_arm_iwram, CSEC_IWRAM)
 	add		sp, sp, #8
 	ldmfd	sp!, {r4-r11, lr}
 	bx		lr
-END_FUNC(chr4c_drawg_b1cts_asm_base_arm_iwram)
+END_FUNC(chr4c_drawg_b1cts_asm_1p_arm_iwram)
 
 // EOF
