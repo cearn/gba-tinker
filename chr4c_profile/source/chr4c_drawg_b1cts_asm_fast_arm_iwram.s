@@ -172,6 +172,7 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 	bx		lr
 
 #if FEATURE_SMALL_SPECIAL() == 1
+	@ A special case where we know we're rending into a single tile column.
 #if 1
 .Lleft_only:
 	sub		r2, r2, #1

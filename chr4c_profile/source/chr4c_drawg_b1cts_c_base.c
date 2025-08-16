@@ -49,6 +49,8 @@ GEN_CODE_SEC void GEN_PROCNAME_BASE (uint gid)
 	}
 }
 
+#define FEATURE_MASK_TEST() 1
+
 /// Render 1bpp fonts to 4bpp tiles, fast(?) version: 8px at a time.
 GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 {
@@ -59,12 +61,17 @@ GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 
 	u32 *dstD = (u32*)((u8*)tc->dst.data + y*4 + x/8*dstP*4), *dstL;
 	x %= 8;
-	u32 lsl = 4*x, lsr = 32-4*x, right = x+charW;
+	const u32 lsl = 4*x, lsr = 32-4*x;
+	const u32 shiftMask = (1<<lsr)-1;
 
 	// Inner loop vars
 	u32 px, pxmask, raw;
 	u32 ink = tc->cattr[TTE_INK];
+#if FEATURE_MASK_TEST() == 1
 	const u32 mask = 0x01010101;
+#else
+	u32 right = x+charW;
+#endif
 
 	uint iy;
 	for(uint iw=0; iw<charW; iw += 8)	// Loop over strips
@@ -91,8 +98,13 @@ GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
 				dstL[0] = (dstL[0] &~ (pxmask<<lsl) ) | (px<<lsl);
 
 				// Write right tile (if any)
+#if FEATURE_MASK_TEST() == 1
+				if (px &~ shiftMask)
+					dstL[dstP] = (dstL[dstP] &~ (pxmask>>lsr) ) | (px>>lsr);
+#else
 				if(right > 8)
 					dstL[dstP] = (dstL[dstP] &~ (pxmask>>lsr) ) | (px>>lsr);
+#endif
 			}
 			dstL++;
 		}

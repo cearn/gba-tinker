@@ -35,7 +35,7 @@ CSTR glados[] =
 typedef struct TProfiler TProfiler;
 struct TProfiler
 {
-	const char	*str;
+	const char	*name;
 	void		(*proc)(TProfiler *prof, const char *str);
 	int			time;
 	bool		check;
@@ -99,7 +99,7 @@ void null_drawg(uint gid)
 void prof_draws(TProfiler *prof, const char *str)
 {
 	tte_set_pos(0, 0);
-	tte_write(prof->str);
+	tte_write(prof->name);
 	tte_write(": \n");
 
 	tte_set_pos(0, 24);
@@ -111,32 +111,37 @@ void prof_draws(TProfiler *prof, const char *str)
 	prof->time = profile_stop();
 }
 
+/// Gets the overhead of drawg calls.
 void prof_null_drawg(TProfiler *prof, const char *str)
 {
 	REG_DISPCNT = DCNT_MODE3 | DCNT_OBJ | DCNT_OBJ_1D;
-	
 	tte_init_bmp(3, &g_font, null_drawg);
-
 	prof_draws(prof, str);
 }
 
+/// Core profiler for chr4c routines.
+/// Colors: 
+/// - 01 for text. (yellow)
+/// - 0F for background (grey)
 void prof_chr4c_base(TProfiler *prof, const char *str, fnDrawg proc)
 {
 	REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 	
-	tte_init_chr4c(2, BG_CBB(0)|BG_SBB(24), 0xF000, 0x0F0201, CLR_YELLOW, &g_font, proc);
+	tte_init_chr4c(2, BG_CBB(0)|BG_SBB(24), 0xF000, 0x0F0001, CLR_YELLOW, &g_font, proc);
 
 	tte_erase_screen();
 	prof_draws(prof, str);
 }
 
+/// Setup for rendering checking. chr4c-renders the test string to the screen and copies 
+/// it to 0600:6000 for safe keeping and later used as reference data by @a test_check_render().
 void test_check_render_init()
 {
 	TSurface* srf = &tte_get_context()->dst;
 
 	// Render base text
 	REG_DISPCNT = 0;
-	tte_init_chr4c(2, BG_CBB(0)|BG_SBB(24), 0xF000, 0x0F0201, CLR_MONEYGREEN, &g_font, chr4c_drawg_b1cts);
+	tte_init_chr4c(2, BG_CBB(0)|BG_SBB(24), 0xF000, 0x0F0001, CLR_MONEYGREEN, &g_font, chr4c_drawg_b1cts);
 	
 	TProfiler prof = {};
 	tte_erase_screen();
@@ -152,7 +157,8 @@ void test_check_render_init()
 		memcpy32(&dst[tx*dstRows], &src[tx*srcRows], dstRows*sizeof(TILE)/4);
 }
 
-/// Checks whether the rendering went alright.
+/// Checks whether the rendering went alright. Checkmark or cross should appear 
+/// in the bottom-right as an indicator.
 bool test_check_render()
 {
 	TSurface* srf = &tte_get_context()->dst;
@@ -182,13 +188,12 @@ bool test_check_render()
 	}
 }
 
-//! Testing rendering speeds.
+/// Testing rendering speeds.
 void test_speeds()
 {
 	RegisterRamReset(RESET_GFX);
 
 	// --- Setup render ---
-	int i;
 	const char *str = glados[0];
 	const uint len = strlen(str);
 
@@ -215,7 +220,7 @@ void test_speeds()
 	);
 
 	// --- Running tests ---
-	for(i=0; i<countof(g_profs); i++)
+	for(int i=0; i<countof(g_profs); i++)
 	{
 		g_profs[i].proc(&g_profs[i], str);
 		g_profs[i].check = test_check_render();
@@ -238,11 +243,11 @@ void test_speeds()
 
 	iprintf("%d\n", len);
 	// I miss my c++ ranged-for loops :(
-	for(i=0; i<countof(g_profs); i++)
+	for(int i=0; i<countof(g_profs); i++)
 	{
 		TProfiler* prof = &g_profs[i];
 		tte_set_special(SE_PALBANK(14+(i&1)));
-		iprintf("%-13s %6d  %d\n", prof->str, prof->time, prof->time/len);
+		iprintf("%-13s %6d  %5d\n", prof->name, prof->time, prof->time/len);
 	}
 
 	key_wait_till_hit(KEY_START);
