@@ -13,6 +13,7 @@ export PATH	:=	$(DEVKITARM)/bin:$(PATH)
 GRIT		:= grit
 
 .SUFFIXES:
+.PRECIOUS: %.s		# Keep Make from deleting them.
 
 include $(DEVKITARM)/gba_rules
 
@@ -23,16 +24,18 @@ include $(DEVKITARM)/gba_rules
 
 # GFXTITLE	: Graphics library name
 # BUILD		: Directory for build process temporaries. Should NOT be empty!
-# GFXDIRS	: List of graphics directories
-# GFXEXTS	: Graphics extensions.
+# GFX_SRCDIRS	: List of graphics directories
+# GFX_EXTS	: Graphics extensions.
 # General note: use . for the current dir, don't leave them empty.
 
-BUILD		:= build
-GFXDIRS		:= gfx
-GFXLIB		?= libgfx.a
-GFXHDR		?= all_gfx.h
+BUILD			:= build
 
-GFXEXTS		:= png bmp
+GFX_BUILD		:= gfxbuild
+GFX_OUT			?= libgfx.a
+GFX_OUT_HEADER	?= all_gfx.h
+
+GFX_SRCDIRS		:= gfx
+GFX_EXTS		:= png bmp
 
 # --- Exceptions ---
 # Add files/file-variables for special rules here. Put the rules 
@@ -57,28 +60,28 @@ CFLAGS		:=
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS		:= 
 
-
 # ---------------------------------------------------------------------
 # BUILD PROCEDURE
 # ---------------------------------------------------------------------
 
-ifneq ($(BUILD),$(notdir $(CURDIR)))
+ifneq ($(BUILD), $(notdir $(CURDIR)))
 
 # still in main directory.
 
-export TARGET	:=	$(CURDIR)/$(GFXLIB)
+export TARGET			:=	$(CURDIR)/$(BUILD)/$(GFX_OUT)
+export TARGET_HEADER	:=	$(CURDIR)/$(BUILD)/$(GFX_OUT_HEADER)
 
-export VPATH	:=	$(foreach dir, $(GFXDIRS), $(CURDIR)/$(dir))
+export VPATH	:=	$(foreach dir, $(GFX_SRCDIRS), $(CURDIR)/$(dir))
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 GFXFILES	:= $(filter-out	$(GFXSPECIALS), 		\
-	$(foreach dir, $(GFXDIRS),						\
-		$(foreach ext, $(GFXEXTS),					\
+	$(foreach dir, $(GFX_SRCDIRS),					\
+		$(foreach ext, $(GFX_EXTS),					\
 			$(notdir $(wildcard $(dir)/*.$(ext)))	\
 	)))
 
+export GFXFILES
 export OFILES	:= $(addsuffix .o, $(basename $(GFXFILES))) $(OSPECIALS)
-
 
 # --- More targets ----------------------------------------------------
 
@@ -88,37 +91,35 @@ export OFILES	:= $(addsuffix .o, $(basename $(GFXFILES))) $(OSPECIALS)
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
+# 	@[ -d $(GFX_BUILD) ] || mkdir -p $(GFX_BUILD) # Not yet
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/gfxmake
 
 all	: $(BUILD)
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET) $(GFXHDR)
+	@rm -fr $(BUILD) $(GFXBUILD) $(TARGET) $(TARGET_HEADER)
 
 	
 # ---------------------------------------------------------------------
 
 else
 
-FOO		= build/foo.bar.x
-
 DEPENDS	:=	$(OFILES:.o=.d)
 
-.PHONY : all 
+.PHONY : all
 
-all : $(TARGET) $(GFXHDR)
+all : $(TARGET) $(TARGET_HEADER)
 
 $(TARGET) : $(OFILES)
 	@echo Archiving into $(notdir $@)
-	-@rm -f $@
+#	-@rm -f $@	# Nope; not removing these here!
 	@$(AR) rcs $@ $(OFILES)
 
-
-$(GFXHDR) : $(OFILES)
+$(TARGET_HEADER) : $(OFILES)
 	@echo "Creating master header: $@"
 	@$(call master-header, $@, $(notdir $(^:.o=.h)) )
-
+	@echo master-header made!
 
 # ---------------------------------------------------------------------
 # BASE CONVERSION RULES
@@ -127,16 +128,16 @@ $(GFXHDR) : $(OFILES)
 # --- With separate .grit file ---
 
 %.s %.h	: %.png %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.bmp %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.pcx %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.jpg %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 
 # --- Without .grit file ; uses dirname/dirname.grit for options ---

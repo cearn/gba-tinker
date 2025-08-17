@@ -70,7 +70,7 @@ IARCH   := -mthumb-interwork -marm -mlong-calls
 
 # --- Main flags ---
 
-CFLAGS	:= -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH) -Os
+CFLAGS	:= -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH) -O2
 CFLAGS	+= -Wall
 CFLAGS	+= $(INCLUDE)
 CFLAGS	+= -ffast-math -fno-strict-aliasing
@@ -106,7 +106,7 @@ endif
 # BUILD PROCEDURE
 # ---------------------------------------------------------------------
 
-ifneq ($(BUILD),$(notdir $(CURDIR)))
+ifneq ($(BUILD), $(notdir $(CURDIR)))
 
 # Still in main dir: 
 # * Define/export some extra variables
@@ -146,12 +146,12 @@ export INCLUDE	:=									\
 	$(foreach dir,$(LIBDIRS),-I$(dir)/include)		\
 	-I$(CURDIR)/$(BUILD)
 
-export LIBPATHS	:=	-L$(CURDIR) $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+export LIBPATHS	:=	-L$(CURDIR)/$(BUILD) $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 
 # --- More targets ----------------------------------------------------
 
-.PHONY: $(BUILD) clean
+.PHONY: $(BUILD)
 
 # --- Create $(BUILD) if necessary, and run this makefile from there ---
 
@@ -164,7 +164,7 @@ all	: $(BUILD)
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba $(TARGET).map
 
 
 else		# If we're here, we should be in the BUILD dir
@@ -173,13 +173,16 @@ DEPENDS	:=	$(OFILES:.o=.d)
 
 # --- Main targets ----
 
-$(OUTPUT).gba	:	$(OUTPUT).elf
+$(OUTPUT).gba	:	$(OUTPUT).elf | $(OUTPUT).map
 
-$(OUTPUT).elf	:	$(OFILES) libgfx.a
+$(OUTPUT).elf	:	$(OFILES) $(GFXLIBS)
+
+$(OUTPUT).map: $(OUTPUT).elf
+	@echo Making map file \( $* \) ...
+	$(NM) -Sn $< > $@
 
 
 -include $(DEPENDS)
-
 
 endif		# End BUILD switch
 
