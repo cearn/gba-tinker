@@ -16,28 +16,33 @@
 # If not defined as environment var, assumed to be 2 dirs up
 export TONCCODE	?= $(CURDIR)/../../tonc/code/
 
-include $(TONCCODE)/tonc_rules
+# include $(TONCCODE)/tonc_rules
+
+include $(DEVKITARM)/gba_rules
 
 # --- Main path ---
 export PATH	:=	$(DEVKITARM)/bin:$(PATH)
-
 
 # ---------------------------------------------------------------------
 # PROJECT DETAILS
 # ---------------------------------------------------------------------
 
-# PROJ		: Base project name
-# TITLE		: Title for ROM header (12 characters)
-# LIBS		: Libraries to use, formatted as list for linker flags
-# BUILD		: Directory for build process temporaries. Should NOT be empty!
-# SRCDIRS	: List of source file directories
-# DATADIRS	: List of data file directories
-# INCDIRS	: List of header file directories
-# LIBDIRS	: List of library directories
+# PROJ       : Base project name
+# GAME_TITLE : Title for ROM header (12 chars)
+# GAME_CODE  : Code for ROM header (4 chars)
+# MAKER_CODE : Developer code (2 chars)
+# LIBS       : Libraries to use, formatted as list for linker flags
+# BUILD      : Directory for build process temporaries. Should NOT be empty!
+# SRCDIRS    : List of source file directories
+# DATADIRS   : List of data file directories
+# INCDIRS    : List of header file directories
+# LIBDIRS    : List of library directories
 # General note: use . for the current dir, don't leave them empty.
 
 export PROJ	?= $(notdir $(CURDIR))
-TITLE		:= $(PROJ)
+GAME_TITLE	:= $(PROJ)
+GAME_CODE	:=
+MAKER_CODE	:=
 GFXLIBS		:= libgfx.a
 
 LIBS		:= -ltonc -lgfx
@@ -46,15 +51,17 @@ BUILD		:= build
 SRCDIRS		:= source fonts
 DATADIRS	:= data
 INCDIRS		:= include fonts
-LIBDIRS		:= $(TONCCODE)/tonclib
-
+LIBDIRS	:= $(TONCCODE)/tonclib
+# Can't use this one yet: tte_types.s not available.
+#LIBDIRS		:= $(DEVKITPRO)/libtonc
 
 # --- switches ---
 
 bMB		:= 0	# Multiboot build
 bTEMPS	:= 1	# Save gcc temporaries (.i and .s files)
 bDEBUG2	:= 0	# Generate debug info (bDEBUG2? Not a full DEBUG flag. Yet)
-
+# Verbose mode (must be "V=1" exactly)
+export V=1
 
 # ---------------------------------------------------------------------
 # BUILD FLAGS
@@ -62,14 +69,9 @@ bDEBUG2	:= 0	# Generate debug info (bDEBUG2? Not a full DEBUG flag. Yet)
 
 # This is probably where you can stop editing
 
-# --- Architecture ---
-
-ARCH    := -mthumb-interwork -mthumb
-RARCH   := -mthumb-interwork -mthumb
-IARCH   := -mthumb-interwork -marm -mlong-calls
-
 # --- Main flags ---
 
+ARCH    := -mthumb-interwork -mthumb
 CFLAGS	:= -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH) -O2
 CFLAGS	+= -Wall
 CFLAGS	+= $(INCLUDE)
@@ -78,13 +80,13 @@ CFLAGS	+= -ffast-math -fno-strict-aliasing
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:= $(ARCH) $(INCLUDE)
-LDFLAGS := $(ARCH) -Wl,-Map,$(PROJ).map
+LDFLAGS	:= $(ARCH)
 
 # --- switched additions ----------------------------------------------
 
 # --- Multiboot ? ---
 ifeq ($(strip $(bMB)), 1)
-	TARGET	:= $(PROJ).mb
+	TARGET	:= $(PROJ)_mb
 else
 	TARGET	:= $(PROJ)
 endif
@@ -160,27 +162,25 @@ $(BUILD):
 	@make --no-print-directory -f $(CURDIR)/gfxmake
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-all	: $(BUILD)
+all : $(BUILD)
 
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba $(TARGET).map
 
-
 else		# If we're here, we should be in the BUILD dir
 
-DEPENDS	:=	$(OFILES:.o=.d)
+DEPENDS :=	$(OFILES:.o=.d)
 
 # --- Main targets ----
 
-$(OUTPUT).gba	:	$(OUTPUT).elf | $(OUTPUT).map
+$(OUTPUT).gba : $(OUTPUT).elf | $(OUTPUT).map
 
-$(OUTPUT).elf	:	$(OFILES) $(GFXLIBS)
+$(OUTPUT).elf : $(OFILES) $(GFXLIBS)
 
-$(OUTPUT).map: $(OUTPUT).elf
-	@echo Making map file \( $* \) ...
-	$(NM) -Sn $< > $@
-
+$(OUTPUT).map : $(OUTPUT).elf
+	@echo Making map file \`$(@F)\` ...
+	$(SILENTCMD)$(NM) -Sn $< > $@
 
 -include $(DEPENDS)
 
