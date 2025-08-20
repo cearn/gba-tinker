@@ -4,7 +4,7 @@
 
 #define GEN_CODE_SEC // empty
 
-#define GEN_PROCNAME_BASE chr4c_drawg_b1cts_c_1p_arm_rom
-#define GEN_PROCNAME_FAST chr4c_drawg_b1cts_c_8p_arm_rom
+#define GEN_PROCNAME_1P chr4c_drawg_b1cts_c_1p_arm_rom
+#define GEN_PROCNAME_8P chr4c_drawg_b1cts_c_8p_arm_rom
 
-#include "chr4c_drawg_b1cts_c_base.c"
+#include "chr4c_drawg_b1cts.c.inc"

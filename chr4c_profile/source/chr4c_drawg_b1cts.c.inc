@@ -1,23 +1,29 @@
 //
-// Testing iwram versions of chr4c_drawg_b1cts. Let's see what the compiler can make of it.
-// This is the base version (Thumb/ROM), included in the other files. Be sure to define
+// 1p and 8p implementation of chr4c_drawg_b1cts. 
+// Include this in the to-compile files to 'activate' the implementaitons. 
+// Be sure to define
 // - GEN_CODE_SEC			// Code section to put code in
-// - GEN_PROCNAME_BASE		// name of 'base' function
-// - GEN_PROCNAME_FAST		// name of 'fast' function
-
+// - GEN_PROCNAME_1P		// name of 'base' function
+// - GEN_PROCNAME_8P		// name of 'fast' function
+// Yes, normally you'd make these inline functions and then call them in the specific functions. 
+// However, I want something for -O0 as well, and that does not inline functions.
+// 
+// Basically: don't emulate this :P
 
 #include <tonc_memdef.h>
 #include <tonc_tte.h>
 
 #ifndef GEN_CODE_SEC
+	#error "Please define `GEN_CODE_SEC` (empty or `IWRAM_CODE`)"
 	#define GEN_CODE_SEC 
 #endif
 
-#ifndef GEN_PROCNAME_BASE
-	#define GEN_PROCNAME_BASE chr4c_drawg_b1cts_c_1p_thumb_rom
-	#endif
-#ifndef GEN_PROCNAME_FAST
-	#define GEN_PROCNAME_FAST chr4c_drawg_b1cts_c_8p_thumb_rom
+#ifndef GEN_PROCNAME_1P
+	#error "Please define `GEN_PROCNAME_1P` for the 1p implementation"
+#endif
+
+#ifndef GEN_PROCNAME_8P
+	#error "Please define `GEN_PROCNAME_8P` for the 8p implementation"
 #endif
 
 // --------------------------------------------------------------------
@@ -25,7 +31,7 @@
 // --------------------------------------------------------------------
 
 /// Base version, pixel-by-pixel.
-GEN_CODE_SEC void GEN_PROCNAME_BASE (uint gid)
+GEN_CODE_SEC void GEN_PROCNAME_1P (uint gid)
 {
 	TTE_BASE_VARS(tc, font);
 	TTE_CHAR_VARS(font, gid, u8, srcD, srcL, charW, charH);
@@ -52,7 +58,7 @@ GEN_CODE_SEC void GEN_PROCNAME_BASE (uint gid)
 #define FEATURE_MASK_TEST() 1
 
 /// Render 1bpp fonts to 4bpp tiles, fast(?) version: 8px at a time.
-GEN_CODE_SEC void GEN_PROCNAME_FAST (uint gid)
+GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 {
 	TTE_BASE_VARS(tc, font);
 	TTE_CHAR_VARS(font, gid, u8, srcD, srcL, charW, charH);
