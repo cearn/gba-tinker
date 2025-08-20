@@ -13,6 +13,7 @@ export PATH	:=	$(DEVKITARM)/bin:$(PATH)
 GRIT		:= grit
 
 .SUFFIXES:
+.PRECIOUS: %.s		# Keep Make from deleting them.
 
 include $(DEVKITARM)/gba_rules
 
@@ -23,16 +24,16 @@ include $(DEVKITARM)/gba_rules
 
 # GFXTITLE	: Graphics library name
 # BUILD		: Directory for build process temporaries. Should NOT be empty!
-# GFXDIRS	: List of graphics directories
-# GFXEXTS	: Graphics extensions.
+# GFX_SRCDIRS	: List of graphics directories
+# GFX_EXTS	: Graphics extensions.
 # General note: use . for the current dir, don't leave them empty.
 
-BUILD		:= build
-GFXDIRS		:= gfx
-GFXLIB		?= libgfx.a
-GFXHDR		?= all_gfx.h
+BUILD			:= build
+GFX_OUT			?= libgfx.a
+GFX_OUT_HEADER	?= all_gfx.h
 
-GFXEXTS		:= png bmp
+GFX_SRCDIRS		:= gfx
+GFX_EXTS		:= png bmp
 
 # --- Exceptions ---
 # Add files/file-variables for special rules here. Put the rules 
@@ -45,7 +46,6 @@ GFXEXTS		:= png bmp
 export GFXSPECIALS	:=
 OSPECIALS			:= 
 
-
 # ---------------------------------------------------------------------
 # BUILD FLAGS
 # ---------------------------------------------------------------------
@@ -57,28 +57,27 @@ CFLAGS		:=
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS		:= 
 
-
 # ---------------------------------------------------------------------
 # BUILD PROCEDURE
 # ---------------------------------------------------------------------
 
-ifneq ($(BUILD),$(notdir $(CURDIR)))
+ifneq ($(BUILD), $(notdir $(CURDIR)))
 
 # still in main directory.
 
-export TARGET	:=	$(CURDIR)/$(GFXLIB)
+export TARGET			:=	$(CURDIR)/$(BUILD)/$(GFX_OUT)
+export TARGET_HEADER	:=	$(CURDIR)/$(BUILD)/$(GFX_OUT_HEADER)
 
-export VPATH	:=	$(foreach dir, $(GFXDIRS), $(CURDIR)/$(dir))
+export VPATH	:=	$(foreach dir, $(GFX_SRCDIRS), $(CURDIR)/$(dir))
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 GFXFILES	:= $(filter-out	$(GFXSPECIALS), 		\
-	$(foreach dir, $(GFXDIRS),						\
-		$(foreach ext, $(GFXEXTS),					\
+	$(foreach dir, $(GFX_SRCDIRS),					\
+		$(foreach ext, $(GFX_EXTS),					\
 			$(notdir $(wildcard $(dir)/*.$(ext)))	\
 	)))
 
 export OFILES	:= $(addsuffix .o, $(basename $(GFXFILES))) $(OSPECIALS)
-
 
 # --- More targets ----------------------------------------------------
 
@@ -94,31 +93,28 @@ all	: $(BUILD)
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET) $(GFXHDR)
+	@rm -fr $(BUILD) $(GFXBUILD) $(TARGET) $(TARGET_HEADER)
 
-	
+
 # ---------------------------------------------------------------------
 
 else
 
-FOO		= build/foo.bar.x
-
 DEPENDS	:=	$(OFILES:.o=.d)
 
-.PHONY : all 
+.PHONY : all
 
-all : $(TARGET) $(GFXHDR)
+all : $(TARGET) $(TARGET_HEADER)
 
 $(TARGET) : $(OFILES)
 	@echo Archiving into $(notdir $@)
-	-@rm -f $@
+#	-@rm -f $@	# Nope; not removing these here!
 	@$(AR) rcs $@ $(OFILES)
 
-
-$(GFXHDR) : $(OFILES)
+$(TARGET_HEADER) : $(OFILES)
 	@echo "Creating master header: $@"
 	@$(call master-header, $@, $(notdir $(^:.o=.h)) )
-
+	@echo master-header made!
 
 # ---------------------------------------------------------------------
 # BASE CONVERSION RULES
@@ -127,16 +123,16 @@ $(GFXHDR) : $(OFILES)
 # --- With separate .grit file ---
 
 %.s %.h	: %.png %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.bmp %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.pcx %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 %.s %.h	: %.jpg %.grit
-	@$(GRIT) $< -o$* -fts
+	$(GRIT) $< -o$* -fts
 
 
 # --- Without .grit file ; uses dirname/dirname.grit for options ---
@@ -164,7 +160,9 @@ $(GFXHDR) : $(OFILES)
 # ---------------------------------------------------------------------
 
 ## Merge all headers into a single large one for easier including.
-define master-header	# $1 : master path, $2 separate header paths
+## @param $1	Master destination path.
+## @param $2	Source-header paths, space-separated.
+define master-header
 	echo -e "//\n// $(notdir $(strip $1))\n//" > $1
 	echo -e "// One header to rule them and in the darkness bind them" >> $1
 	echo -e "// Date: $(shell date +'%F %X' )\n" >> $1
@@ -180,19 +178,23 @@ endef
 # --- odds and ends ---
 
 ## Get the title-part of filename.
-define title		# $1: filepath
+## @param $1	Filepath.
+define title
 	$(basename $(notdir $1))
 endef
 
 ## Get a valid C identifier for a name.
-define cident		# $1: name
+## @param $1	Name to convert.
+define cident
 	`echo $1 | sed -e 's|^\([0-9]\)|_\1| ; s|[./\\-]|_|g'`
 endef
 
 ## Create a header file for a bin2s converted binary.
-define bin-header		# $1: path, $2: identifier
+## @param $1	Destination path.
+## @poram $2	Identifier of binary.
+define bin-header
 	echo "extern const u32 $(strip $2)_size;" >  $1
-	echo "extern const u8 $(strip $2)[];"     >> $1	
+	echo "extern const u8 $(strip $2)[];"     >> $1
 endef
 
 # ---------------------------------------------------------------------
