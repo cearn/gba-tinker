@@ -26,6 +26,9 @@
 	#error "Please define `GEN_PROCNAME_8P` for the 8p implementation"
 #endif
 
+// Use a shiftmask instead of a right-test.
+#define FEATURE_MASK_TEST() 1
+
 // --------------------------------------------------------------------
 // FUNCTIONS
 // --------------------------------------------------------------------
@@ -55,8 +58,6 @@ GEN_CODE_SEC void GEN_PROCNAME_1P (uint gid)
 	}
 }
 
-#define FEATURE_MASK_TEST() 1
-
 /// Render 1bpp fonts to 4bpp tiles, fast(?) version: 8px at a time.
 GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 {
@@ -67,16 +68,16 @@ GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 
 	u32 *dstD = (u32*)((u8*)tc->dst.data + y*4 + x/8*dstP*4), *dstL;
 	x %= 8;
-	const u32 lsl = 4*x, lsr = 32-4*x;
-	const u32 shiftMask = (1<<lsr)-1;
-
+	const uint lsl = 4*x, lsr = 32-4*x;
+	
 	// Inner loop vars
 	u32 px, pxmask, raw;
 	u32 ink = tc->cattr[TTE_INK];
-#if FEATURE_MASK_TEST() == 1
 	const u32 mask = 0x01010101;
+#if FEATURE_MASK_TEST() == 1
+	const uint shiftMask = (1<<lsr)-1;
 #else
-	u32 right = x+charW;
+	uint right = x+charW;
 #endif
 
 	uint iy;
@@ -93,12 +94,12 @@ GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 			{
 				raw |= raw<<12;
 				raw |= raw<< 6;
-				px   = raw & mask<<1;
+				px   = raw & (mask<<1);
 				raw &= mask;
 				px   = raw | px<<3;
 
 				pxmask = px*15;
-				px   *= ink;
+				px  *= ink;
 
 				// Write left tile:
 				dstL[0] = (dstL[0] &~ (pxmask<<lsl) ) | (px<<lsl);
@@ -112,6 +113,9 @@ GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 					dstL[dstP] = (dstL[dstP] &~ (pxmask>>lsr) ) | (px>>lsr);
 #endif
 			}
+#if FEATURE_MASK_TEST() == 0
+			right -= 8;
+#endif
 			dstL++;
 		}
 	}

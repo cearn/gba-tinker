@@ -11,7 +11,7 @@
 
 #include "../build/all_gfx.h"
 
-CSTR glados[] = 
+CSTR c_glados[] = 
 {
 "Please note that we have added a consequence for failure. "
 	"Any contact with the chamber floor will result in an "
@@ -32,21 +32,21 @@ CSTR glados[] =
 "cube. Of course, he couldn't come because you murdered him."
 };
 
-typedef struct TProfiler TProfiler;
-struct TProfiler
+typedef struct Profiler Profiler;
+struct Profiler
 {
-	const char	*name;
-	void		(*proc)(TProfiler *prof, const char *str);
-	int			time;
-	bool		check;
- };
+	const char	*name;		///< Name of routine.
+	void		(*proc)(Profiler *prof, const char *str);	///< Test drawg
+	int			time;		///< (out) Time of tte_write call.
+	bool		check;		///< Whether @a proc rendered the text correctly.
+};
 
-void prof_null_drawg(TProfiler *prof, const char *str);
-void prof_chr4c_base(TProfiler *prof, const char *str, fnDrawg proc);
+void prof_null_drawg(Profiler *prof, const char *str);
+void prof_chr4c_base(Profiler *prof, const char *str, fnDrawg proc);
 
 #define GEN_DEF_TESTER(codesec, affix)											\
 	codesec void chr4c_drawg_b1cts_##affix (uint gid);							\
-	void prof_chr4c_drawg_b1cts_##affix (TProfiler* prof, const char* str) {	\
+	void prof_chr4c_drawg_b1cts_##affix (Profiler* prof, const char* str) {	\
 		prof_chr4c_base(prof, str, chr4c_drawg_b1cts_##affix);					\
 	}
 
@@ -65,7 +65,7 @@ GEN_DEF_TESTER(IWRAM_CODE, c_8p_arm_iwram);
 GEN_DEF_TESTER(IWRAM_CODE, asm_1p_arm_iwram);
 GEN_DEF_TESTER(IWRAM_CODE, asm_8p_arm_iwram);
 
-TProfiler g_profs[]= 
+Profiler g_testCases[] = 
 {
 	{	"null",				prof_null_drawg, 0 }, 
 	// 1 px variants	
@@ -88,6 +88,7 @@ TFont g_font;
 // --------------------------------------------------------------------
 // Additional renderers
 // --------------------------------------------------------------------
+
 void null_drawg(uint gid)
 {
 }
@@ -96,7 +97,7 @@ void null_drawg(uint gid)
 // Profiler routines
 // --------------------------------------------------------------------
 
-void prof_draws(TProfiler *prof, const char *str)
+void prof_draws(Profiler *prof, const char *str)
 {
 	tte_set_pos(0, 0);
 	tte_write(prof->name);
@@ -107,12 +108,11 @@ void prof_draws(TProfiler *prof, const char *str)
 
 	profile_start();
 	tte_write(str);
-
 	prof->time = profile_stop();
 }
 
 /// Gets the overhead of drawg calls.
-void prof_null_drawg(TProfiler *prof, const char *str)
+void prof_null_drawg(Profiler *prof, const char *str)
 {
 	REG_DISPCNT = DCNT_MODE3 | DCNT_OBJ | DCNT_OBJ_1D;
 	tte_init_bmp(3, &g_font, null_drawg);
@@ -123,7 +123,7 @@ void prof_null_drawg(TProfiler *prof, const char *str)
 /// Colors: 
 /// - 01 for text. (yellow)
 /// - 0F for background (grey)
-void prof_chr4c_base(TProfiler *prof, const char *str, fnDrawg proc)
+void prof_chr4c_base(Profiler *prof, const char *str, fnDrawg proc)
 {
 	REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 	
@@ -143,9 +143,9 @@ void test_check_render_init()
 	REG_DISPCNT = 0;
 	tte_init_chr4c(2, BG_CBB(0)|BG_SBB(24), 0xF000, 0x0F0001, CLR_MONEYGREEN, &g_font, chr4c_drawg_b1cts);
 	
-	TProfiler prof = {};
+	Profiler prof = {};
 	tte_erase_screen();
-	prof_draws(&prof, glados[0]);
+	prof_draws(&prof, c_glados[0]);
 	
 	// Copy (0, 24) - (240, 160) to VRAM+6000h for later comparison.
 	const uint row0 = 3;
@@ -194,7 +194,7 @@ void test_speeds()
 	RegisterRamReset(RESET_GFX);
 
 	// --- Setup render ---
-	const char *str = glados[0];
+	const char *str = c_glados[0];
 	const uint len = strlen(str);
 
 	g_font = vwf_default;
@@ -220,10 +220,10 @@ void test_speeds()
 	);
 
 	// --- Running tests ---
-	for(int i=0; i<countof(g_profs); i++)
+	for(int i=0; i<countof(g_testCases); i++)
 	{
-		g_profs[i].proc(&g_profs[i], str);
-		g_profs[i].check = test_check_render();
+		g_testCases[i].proc(&g_testCases[i], str);
+		g_testCases[i].check = test_check_render();
 		// Next on 16 frames or key-down.
 		for (int j=0; j<16; j++)
 		{
@@ -243,11 +243,12 @@ void test_speeds()
 
 	iprintf("%d\n", len);
 	// I miss my c++ ranged-for loops :(
-	for(int i=0; i<countof(g_profs); i++)
+	for(int i=0; i<countof(g_testCases); i++)
 	{
-		TProfiler* prof = &g_profs[i];
+		Profiler* prof = &g_testCases[i];
 		tte_set_special(SE_PALBANK(14+(i&1)));
-		iprintf("%-13s %6d  %5d\n", prof->name, prof->time, prof->time/len);
+		iprintf("%c%-13s %7d %5d\n", 
+			(prof->check ? ' ':'-'), prof->name, prof->time, prof->time/len);
 	}
 
 	key_wait_till_hit(KEY_START);

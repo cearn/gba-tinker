@@ -16,8 +16,6 @@
 # If not defined as environment var, assumed to be 2 dirs up
 export TONCCODE	?= $(CURDIR)/../../tonc/code/
 
-# include $(TONCCODE)/tonc_rules
-
 include $(DEVKITARM)/gba_rules
 
 # --- Main path ---
