@@ -10,6 +10,15 @@
 #include <string.h>
 
 #include "../build/all_gfx.h"
+#include "../fonts/fonts.h"
+
+#define FEATURE_FONT_STD 0
+#define FEATURE_FONT_WIDE 1
+#define FEATURE_FONT_BOLD 2
+#define FEATURE_FONT() 0
+
+#define FEATURE_KEY_WAIT() 0
+
 
 CSTR c_glados[] = 
 {
@@ -197,7 +206,13 @@ void test_speeds()
 	const char *str = c_glados[0];
 	const uint len = strlen(str);
 
+#if FEATURE_FONT() == FEATURE_FONT_BOLD
+	g_font = verdana9bFont;
+#elif FEATURE_FONT() == FEATURE_FONT_WIDE
+	g_font = segoescr12Font;
+#else
 	g_font = vwf_default;
+#endif
 
 	// --- Setup checkers ---
 	pal_bg_bank[15][15] = CLR_GRAY;
@@ -224,13 +239,19 @@ void test_speeds()
 	{
 		g_testCases[i].proc(&g_testCases[i], str);
 		g_testCases[i].check = test_check_render();
+
+#if FEATURE_KEY_WAIT() == 1
+		key_wait_till_hit(KEY_ANY);
+#else
 		// Next on 16 frames or key-down.
 		for (int j=0; j<16; j++)
 		{
 			VBlankIntrWait();
+			key_poll();
 			if (key_is_down(KEY_ANY))
 				break;
-		}
+			}
+#endif
 	}
 
 	// --- Display results ---
