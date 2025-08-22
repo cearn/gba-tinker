@@ -8,13 +8,160 @@
 ///
 /// === NOTES ===
 
+/// Use the negative-iy index version. Currently fastest.
+#define FEATURE_NEG_IY() 1
+
+/// Enable within-one-tile special case branch. Some speedup, but much longer.
 #define FEATURE_SMALL_SPECIAL() 0
 
-#define FEATURE_MASK_TEST() 1
+/// For old version: test for right-rendering with a mask instead of the right boundary.
+#define FEATURE_MASK_TEST() 0
+
+/// For old version: use mask-test for left bound as well. Makes it slower.
 #define FEATURE_MASK_LEFT_CND() 0
 
 #include <tonc_asminc.h>
 #include <../src/tte/tte_types.s>
+
+#if FEATURE_NEG_IY() == 1
+@ IWRAM_CODE void chr4c_drawg_b1cts_asm_8p_arm_iwram(int gid);
+BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
+	push	{r4-r11, lr}
+	ldr		r3, =gp_tte_context
+	ldr		r3, [r3]
+	ldmia	r3, {r6, r11}			@ r6 = dstBase, r11 = dstP
+	ldrb	r7, [r3, #TTC_ink]		@ r7 = ink
+	add		r3, r3, #TTC_cursorX
+	ldmia	r3, {r4, r5}			@ YX, font. r3 free
+	
+	ldmia	r5, {r1, r3}			@ glyphs, widths
+	cmp		r3, #0
+	ldrneb	r10, [r3, r0]			@ - r10 = charW
+	ldreqb	r10, [r5, #TF_charW]	@ /
+	ldrh	r3, [r5, #TF_cellS]
+	mla		r1, r3, r0, r1			@ r1 = &glyphs[gid]
+	ldrb	r2, [r5, #TF_charH]		@ r2 = charH
+	
+	@ Adjust for position & setup loop.
+	@ r1, r2, (r4), r5, (r6), r7, r10, r11 in use.
+	mov		r3, r4, lsr #16			@ y
+	bic		r4, r4, r3, lsl #16		@ x
+	mov		ip, r4, lsr #3
+	mla		r0, r11, ip, r6			@ -r0 = &dstD[y + x/8*dstP]
+	add		r0, r0, r3, lsl #2		@ /
+	
+	and		r3, r4, #7
+	mov		r8, r3, lsl #2			@ r8 = lshift = x%8*4
+#if FEATURE_SMALL_SPECIAL() == 1
+	add		lr, r3, r10
+	cmp		lr, #8
+	blt		.Lleft_only
+#endif
+	rsb		r9, r8, #32				@ r9 = rshift = 32-lshift
+	mov		r6, #1
+	rsb		ip, r6, r6, lsl r9		@ ip = lmask = (1<<rshift)-1
+	orr		r6, r6, r6, lsl #16
+	orr		r6, r6, r6, lsl #8
+
+	@ Move base to bottom of char.
+	add		r0, r0, r2, lsl #2		@ r0 += charH
+	neg		r2, r2					@ r2 = -charH
+	
+	cmp		r10, #8
+	suble	sp, sp, #8
+	ble		.Lyloop_prolog
+	ldrb	r5, [r5, #TF_cellH]		@ r5 = cellH
+	add		r3, r5, r2
+	push	{r2, r3}				@ -charH, cellH-charH
+	b		.Lyloop_prolog
+	
+	@ Register assignments:
+	@ r0	dstLeft
+	@ r1	srcL
+	@ r2	-iy, incrementing
+	@ r3	scratch, source row
+	@ r4	px
+	@ r5	pxmask
+	@ r6	bupmask (0x01010101)
+	@ r7	ink
+	@ r8	lshift
+	@ r9	rshift
+	@ r10	is, decrementing
+	@ r11	dstP
+	@ ip	lmask
+	@ lr	dstRight (=dstLeft + dstP)
+	@ sp00	-charH
+	@ sp04	srcStride = cellH-charH
+.Lsloop:
+		ldmia	sp, {r2, r3}
+		add		r1, r1, r3
+		add		r0, r0, r11
+.Lyloop_prolog:
+		add		lr, r0, r11
+.Lyloop:
+			ldrb	r3, [r1], #1
+			orrs	r3, r3, r3, lsl #12
+			beq		.Lempty				@ Skip if no pixels
+			orr		r3, r3, r3, lsl #6
+			and		r4, r3, r6, lsl #1
+			and		r3, r3, r6
+			orr		r3, r3, r4, lsl #3
+
+			rsb		r5, r3, r3, lsl #4
+			mul		r4, r3, r7
+			
+			@ Left tile
+			ldr		r3, [r0, r2, lsl #2]
+			bic		r3, r3, r5, lsl r8
+			orr		r3, r3, r4, lsl r8
+			str		r3, [r0, r2, lsl #2]
+			
+			@ Right tile
+			bics	r3, r4, ip
+			ldrne	r3, [lr, r2, lsl #2]
+			bicne	r3, r3, r5, lsr r9
+			orrne	r3, r3, r4, lsr r9
+			strne	r3, [lr, r2, lsl #2]
+.Lempty:
+			adds	r2, r2, #1
+			blt		.Lyloop
+		@ strip test
+		subs		r10, #8
+		bgt		.Lsloop
+	add		sp, sp, #8
+	pop		{r4-r11, lr}
+	bx		lr
+#if FEATURE_SMALL_SPECIAL() == 1
+.Lleft_only:
+	ldr		r6,=0x01010101
+	sub		r2, r2, #1
+.Lleft_only_yloop:
+		@ Prep px and pxmask
+		ldrb	r3, [r1, r2]
+		orrs	r3, r3, r3, lsl #12
+		beq		.Lleft_only_empty		@ Skip if no pixels
+		orr		r3, r3, r3, lsl #6
+		and		r4, r3, r6, lsl #1
+		and		r3, r3, r6
+		orr		r3, r3, r4, lsl #3
+
+		rsb		r5, r3, r3, lsl #4
+		mul		r4, r3, r7
+
+		@ left tile
+		ldr		r3, [r0, r2, lsl #2]
+		bic		r3, r3, r5, lsl r8
+		orr		r3, r3, r4, lsl r8
+		str		r3, [r0, r2, lsl #2]
+.Lleft_only_empty:
+		subs	r2, r2, #1
+		bge		.Lleft_only_yloop
+	pop		{r4-r11, lr}
+	bx		lr
+#endif
+END_FUNC(chr4c_drawg_b1cts_asm_8p_arm_iwram)
+
+#else
 
 @ IWRAM_CODE void chr4c_drawg_b1cts_asm_8p_arm_iwram(int gid);
 BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
@@ -77,7 +224,7 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 	@ r7	ink
 	@ r8	left shift
 	@ r9	right shift
-	@ r10	dstD		@# TODO: unnecessary; remove later
+	@ r10	dstD
 	@ r11	charW
 	@ ip	dstP
 #if FEATURE_MASK_TEST() == 1
@@ -225,5 +372,7 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 #endif
 
 END_FUNC(chr4c_drawg_b1cts_asm_8p_arm_iwram)
+
+#endif	// NEG_IY
 
 @ EOF
