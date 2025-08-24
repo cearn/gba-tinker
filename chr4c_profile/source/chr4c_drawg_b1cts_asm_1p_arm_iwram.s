@@ -9,8 +9,6 @@
 ///
 /// === NOTES ===
 
-#define FEATURE_MASK_TEST() 1
-
 #include <tonc_asminc.h>
 #include "tte_types.s.inc"
 

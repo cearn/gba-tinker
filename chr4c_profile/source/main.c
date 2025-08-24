@@ -1,5 +1,5 @@
 ///
-///  TTE profiling gone overboard.
+///  TTE profiling gone wild.
 ///
 /// @author J Vijn
 /// @date 20250810 - 20250824
@@ -174,7 +174,8 @@ bool test_check_render()
 	TSurface* srf = &tte_get_context()->dst;
 
 	const uint row0 = 3;
-	const uint srcRows = srf->height/8, checkRows = srcRows-row0-1;
+	const uint srcRows = srf->height/8;
+	const uint checkRows = srcRows-row0-1;
 	TILE* src = &((TILE*)srf->data)[row0];
 	TILE* check = &tile_mem[1][256];
 

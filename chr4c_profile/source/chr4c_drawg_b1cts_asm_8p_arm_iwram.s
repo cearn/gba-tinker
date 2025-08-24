@@ -8,16 +8,16 @@
 ///
 /// === NOTES ===
 
-/// Use the negative-iy index version. Currently fastest.
+/// Use the negative-iy index version. Currently fastest. 1]
 #define FEATURE_NEG_IY() 1
 
-/// Enable within-one-tile special case branch. Some speedup, but much longer.
+/// Enable within-one-tile special case branch. Some speedup, but much larger. [0]
 #define FEATURE_SMALL_SPECIAL() 0
 
-/// For old version: test for right-rendering with a mask instead of the right boundary.
-#define FEATURE_MASK_TEST() 0
+/// For old version: test for right-rendering with a mask instead of the right boundary. [1]
+#define FEATURE_MASK_TEST() 1
 
-/// For old version: use mask-test for left bound as well. Makes it slower.
+/// For old version: use mask-test for left bound as well. Makes it slower. [0]
 #define FEATURE_MASK_LEFT_CND() 0
 
 #include <tonc_asminc.h>
