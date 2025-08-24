@@ -4,7 +4,7 @@
 ///
 /// @file chr4c_drawg_b1cts_asm_8p_arm_iwram.s
 /// @author J Vijn
-/// @date 20250719
+/// @date 20250719 - 20250824
 ///
 /// === NOTES ===
 
@@ -21,7 +21,7 @@
 #define FEATURE_MASK_LEFT_CND() 0
 
 #include <tonc_asminc.h>
-#include <../src/tte/tte_types.s>
+#include "tte_types.s.inc"
 
 #if FEATURE_NEG_IY() == 1
 @ IWRAM_CODE void chr4c_drawg_b1cts_asm_8p_arm_iwram(int gid);

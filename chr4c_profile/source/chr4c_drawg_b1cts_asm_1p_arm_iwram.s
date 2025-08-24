@@ -12,7 +12,7 @@
 #define FEATURE_MASK_TEST() 1
 
 #include <tonc_asminc.h>
-#include <../src/tte/tte_types.s>
+#include "tte_types.s.inc"
 
 // IWRAM_CODE void chr4c_drawg_b1cts_asm_1p_arm_iwram(int gid);
 BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_1p_arm_iwram, CSEC_IWRAM)

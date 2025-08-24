@@ -1,9 +1,10 @@
 ///
-///  TTE profiling
-/// @author J Vijn
-/// @date 2025-08-10
+///  TTE profiling gone overboard.
 ///
-/// === NOTES ===
+/// @author J Vijn
+/// @date 20250810 - 20250824
+//
+// === NOTES ===
 
 #include <tonc.h>
 #include <stdio.h>
@@ -55,7 +56,7 @@ void prof_chr4c_base(Profiler *prof, const char *str, fnDrawg proc);
 
 #define GEN_DEF_TESTER(codesec, affix)											\
 	codesec void chr4c_drawg_b1cts_##affix (uint gid);							\
-	void prof_chr4c_drawg_b1cts_##affix (Profiler* prof, const char* str) {	\
+	void prof_chr4c_drawg_b1cts_##affix (Profiler* prof, const char* str) {		\
 		prof_chr4c_base(prof, str, chr4c_drawg_b1cts_##affix);					\
 	}
 

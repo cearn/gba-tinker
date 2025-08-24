@@ -12,10 +12,6 @@
 # --- No implicit rules ---
 .SUFFIXES:
 
-# --- Tonc paths ---
-# If not defined as environment var, assumed to be 2 dirs up
-export TONCCODE	?= $(CURDIR)/../../tonc/code/
-
 include $(DEVKITARM)/gba_rules
 
 # --- Main path ---
@@ -49,9 +45,7 @@ BUILD		:= build
 SRCDIRS		:= source fonts
 DATADIRS	:= data
 INCDIRS		:= include fonts
-LIBDIRS	:= $(TONCCODE)/tonclib
-# Can't use this one yet: tte_types.s not available.
-#LIBDIRS		:= $(DEVKITPRO)/libtonc
+LIBDIRS		:= $(DEVKITPRO)/libtonc
 
 # --- switches ---
 
@@ -59,7 +53,7 @@ bMB		:= 0	# Multiboot build
 bTEMPS	:= 1	# Save gcc temporaries (.i and .s files)
 bDEBUG2	:= 0	# Generate debug info (bDEBUG2? Not a full DEBUG flag. Yet)
 # Verbose mode (must be "V=1" exactly)
-export V=1
+export V=0
 
 # ---------------------------------------------------------------------
 # BUILD FLAGS
