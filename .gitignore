@@ -1,7 +1,8 @@
 ﻿**/build/
 **/extra/
+.vscode/
 
 *.a
 *.elf
 *.gba
-.vscode
+*.map
