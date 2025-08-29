@@ -154,7 +154,13 @@ void prof_draws(Profiler *prof, const char *str)
 	VBlankIntrWait();
 
 	profile_start();
+#if FEATURE_TTE_WRITE_IWRAM() == 1
+	IWRAM_CODE int tte_write2(const char *text);
+
+	tte_write2(str);
+#else
 	tte_write(str);
+#endif
 	prof->time = profile_stop();
 }
 
