@@ -1,0 +1,242 @@
+
+1->4 unpack
+abcdefgh
+-> 
+000a 000b 000c 000d 000e 000f 000g 000h
+
+0000 0000 0000 0000 0000 0000 abcd efgh		p = *src8++
+0000 0000 0000 abcd efgh 0000 abcd efgh		p = p | p<<12
+0000 00ab cdef xxcd efxx cdef xxcd efgh		p = p | p<<6
+0000 00a0 0000 00c0 0000 00e0 0000 00g0		q = p & 0x02020202
+0000 000b 0000 000d 0000 000f 0000 000h		p = p & 0x01010101
+000a 000b 000c 000d 000e 000f 000g 000h		p = p | q<<3
+
+
+
+2->4 unpack
+abcd efgh ijkl mnop
+->
+00ab 00cd 00ef 00gh 00ij 00kl 00mn 00op
+
+0000 0000 0000 0000 abcd efgh ijkl mnop		p = *src16++
+0000 0000 abcd efgh xxxx xxxx ijkl mnop		q = p | p<<8
+0000 0000 abcd efgh 0000 0000 ijkl mnop		q = q & 0xFF00
+0000 abcd xxxx efgh 0000 ijkl xxxx mnop		q = q | q<<4;
+00ab 0000 00ef 0000 00ij 0000 00mn 0000		p = 0x30303030 & q<<2
+0000 00cd 0000 00gh 0000 00kl 0000 00op 	q = q & 0x30303030>>4
+00ab 00cd 00ef 00gh 00ij 00kl 00mn 00op		p = p | q
+
+Right: also need (p|p>>1)&0x11111111 *15 for the pixel mask.
+
+00ab 00cd 00ef 00gh 00ij 00kl 00mn 00op		p
+00ax b0cx d0ex f0gx h0ix j0kx l0mx n0ox		p | p>>1
+000x 000x 000x 000x 000x 000x 000x 000x		p & 0x11111111
+pxmask = (p<<16) - p
+
+alt:
+00ab 00cd 00ef 00gh 00ij 00kl 00mn 00op		p
+
+
+4bpp, direct
+
+p = 0xABCDEFGH
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh		p
+aaaa bbbb cccc dddd eeee ffff gggg hhhh		p |= p>>2
+aaAA xxBB xxCC xxDD xxEE xxFF xxGG xxHH		p |= p>>1
+axxA xxxB xxxC xxxD xxxE xxxF xxxG xxxH		p |= p>>1
+000A 000B 000C 000D 000E 000F 000G 000H		p &= 0x11111111
+AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH		p *= 15
+
+3786831129600.00
+
+
+
+typewriter effect:
+
+ Basic problem: when do you add a new number?
+ - as soon as you go over an x00 bound? But x00->x80 should do what? Should the first 
+   call always output something, or only if the first set is over? The former, right?
+   and then it should be some sort of cooldown.
+- commands for speedchange and pauses? Full pauses would require another timer variable. 
+
+If you start at -1, then you have a transit at 0 as well
+end = start + speed
+(end>>8) - (start>>8); gives bounds.
+
+
+v		| p
+  0		| -1, -1, -1, -1, -1
+100		| -1,  FF (0--1 = 1), 1FF (1-0 = 1), 2FF (2-1 = 1)
+ 80		| -1,  7F (0--1 = 1),  FF (0-0 = 0), 17F (1-0 = 1)
+ 40		| -1,  3F (0--1 = 1),  7F, (0), BF (0) FF (0), 13F (1)
+180		| -1, 17F (1--1 = 2), 2FF (2-1 = 1), 47F (4-2 = 2), 5FF (5-4 = 1)
+This might work. But v should be u16 to be sure we move forward.
+
+
+typedef void (*TTEWriterCB)(TTEWriter* writer, int count);
+
+// NOTE: you don't need a full pos if you move str instead.In that case you only need the 
+// fractional part. Is that worth it?
+
+struct TTEWriter
+{
+	const char* str;
+	FIXED pos;	///< 24.8 position.
+	u16 speed;	///< 8.8 speed. Forward only.
+	u16 pad;
+	// [PONDER] Do I need a state to show when we're done?
+	
+	TTEWriterCB glyphCB;	///< Glyph callback. Called after a glyph was rendered.
+};
+
+
+int tte_writer_update(TTEWriter* writer)
+{
+	FIXED pos = writer->pos;
+	int limit = (pos+writer->speed)>>8) - (pos>>8);
+	const char* str = writer->str[pos>>8];	// is this right? Not +1?
+	FIXED start = writer->pos, end = start + writer->speed;
+	
+	// [PONDER] How to make sure we don't repeat letters.
+	// p = 0; v = 100h. 000, 100, 200, 300, 400: 0, 1, 2, 3, 4
+	// p = 0; v = 180h. 000 (0), 180, 300, 480, 600: 
+	// p = 0; v =  80h. 000 (0), 080 (-), 100 (1), 180 (-)
+	TTE_CONTEXT* tc = gp_tte_context;
+	
+	int ch;
+	int count = 0;
+	const char* str = writer->str;
+	for (int i=(start>>8); i<(end>>8); i++)
+	{
+		ch = str[i];
+		if (ch == '\0')
+		{
+			writer->state = DONE;
+			writer->pos = 
+			break;
+		}
+		// [handle special char]
+		if (special)
+		{
+			do special
+			break;
+		}
+		// [handle single char]
+		count++;
+		i++;
+	}
+	return count;
+}
+
+// --- 2026-09-14, mo ---
+Right ... where were we ...
+
+[REQUIREMENTS]
+- Overall: periodically draw to the screen
+- non-int speed
+  - forward only.
+  - speed > 1.0 potentially multiple chars/tick
+  - speed = 1 : one/tick.
+  - speed < 1.0 : less than one/ tick. (0.5 == every other frame)
+  - speed == 0 : don't update
+- adjustable speed.
+- pausable/resumable.
+- speed controllable by script.
+
+[QUESTIONS/QUANDRIES]
+? str + pos, or movable pc? Former is more flexible. 
+  ! Start with that for now.
+? fractional updates have a startup issue. Do you always write at first tick, or after the first 
+  hit? Example: v=0.25 means start at 0 (+...+...+...) or at 4 (...+...+...+)
+  ! For the moment, at first tick. It can always be set at init. (but then I'd need flags)
+  Wait. What about 2.50? (++,+++,++, +++)? Then starting at -v won't work, as that'd go
+  (0, 2.50, 5.00, 7.50, 10.00) (+,++,+++,++,+++)
+  -eps?
+  (2.49, 4.99, 7.49, 9.99) (++,++,+++,++,+++)
+  Ideal: (0 | 2.50, 5.00, 7.50, 10.00), right? But that'd start at 0. So v<1 starts differently?
+  v=0.25: (? | 0, 0.25, 0.50, 0.75, 1.00)
+  I guess?
+  
+? when to handle commands tokens? "ab#{x:0}c" at v=2 means 
+  (1) "ab", "#{x:0}c"
+  or 
+  (2) "ab#{x:0}", "c"?
+  ! Start with (1). Again, can be done with flags?
+? callback at char or by hit? 
+  ! Let's start at by hit. You get the current the struct of the just written data.
+  Actually, why have a callback here? Isn't returning the number of characters written enough?
+? End detection? '\0' or keep length?
+  ! Again, length is more flexible. But still stop at '\0' as well. len=-1 means figure it out 
+  first.
+
+The annoying thing is that right now tte_write() doesn't allow for lengths (yet). And there's 
+the addictional problem of stopping in the middle of a sequence. OTOH, that could happen right 
+now anyway.
+
+? Am I going to have to repeat everything in here, or split the per-char stuff to an internal 
+  function?
+  ! Honestly, I prefer the latter. This could simply by a (char*, len) variant, or a per-char 
+  one. But then all the deeper routines would also need this >_<
+  ... actually no! With per-char, you can make it per-code (either, utf8 or cmdseq). Yeah, 
+  that'll work.
+
+The tricky part is getting the number of characters to print. One for every integer threshold, 
+I guess?
+
+v = 2.25
+	x0		x1
+-0.75	2.00	0,1,2
+ 2.00	4.25	3,4
+ 4.25	6.50	5,6
+ 6.50	8.75	7,8
+ 8.75	11.00	9,10,11
+
+ceil(x1) - ceil(x0) ? Yeah, sounds about right. Works for fixeds too.
+
+Issue with -v for first char: pointer starts at str[-1], where p=0 starts at str[0]. This 
+creates an offset, and a negative one at that. Alt: start at (1-v) is v<1 and use *str++; ?
+
+v	
+1.00
+	p=0
+	p -> 1.00, s=1 (0)
+	p -> 2.00, s=1 (1)
+	p -> 3.00, s=1 (2)
+	p -> 4.00, s=1 (3)
+0.25	
+	p=0.75
+	p -> 1.00, s=1 (0)
+	p -> 1.25, s=0 ()
+	p -> 1.50, s=1 ()
+	p -> 1.75, s=1 ()
+	p -> 2.00, s=1 (1)
+	p -> 2.25, s=0 ()
+	p -> 2.50, s=1 ()
+	p -> 2.75, s=1 ()
+	p -> 3.00, s=1 (2)
+	p -> 3.25, s=0 ()
+	p -> 3.50, s=1 ()
+	p -> 3.75, s=1 ()
+
+2.00	
+2.50	
+
+
+Yup! This works. Need a guard against speed==0 and count ==0 though. I think I could use separate 
+state and flags, maybe? Oh, and a callback after each set. But what should it do? Actually, 
+can't I just have a tte_write(TTC* tc, str, count)? No, that's not enough. THe main problem with 
+just a count is that it should be a character-count, which would ignore commands. So a single 
+tte_write_next is probably in order for a _single_ glyph, including any commands.
+
+
+// --- 2026-09-18, fr ---
+Do I really need a callback? Sure, it's convenient, but I'm calling the writer directly anyway. 
+If I return the number of characters (real characters) written, that should be enough? I mean, 
+it's nice for debugging and logging and such, but that's hardly what's relevant now.
+
+
+
+
+
+
