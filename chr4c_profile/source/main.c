@@ -18,8 +18,11 @@
 #define FEATURE_FONT_BOLD 2
 #define FEATURE_FONT() 0
 
-#define FEATURE_KEY_WAIT() 0
+#define FEATURE_KEY_WAIT() 1
 
+#define FEATURE_TTE_WRITE_IWRAM() 0
+
+#define FEATURE_FONT_BPP 4
 
 CSTR c_glados[] = 
 {
@@ -54,27 +57,30 @@ struct Profiler
 void prof_null_drawg(Profiler *prof, const char *str);
 void prof_chr4c_base(Profiler *prof, const char *str, fnDrawg proc);
 
-#define GEN_DEF_TESTER(codesec, affix)											\
-	codesec void chr4c_drawg_b1cts_##affix (uint gid);							\
-	void prof_chr4c_drawg_b1cts_##affix (Profiler* prof, const char* str) {		\
-		prof_chr4c_base(prof, str, chr4c_drawg_b1cts_##affix);					\
+#define GEN_DEF_TESTER_BASE(codesec, type, affix)											\
+	codesec void chr4c_drawg_##type##_##affix (uint gid);							\
+	void prof_chr4c_drawg_##type##_##affix (Profiler* prof, const char* str) {		\
+		prof_chr4c_base(prof, str, chr4c_drawg_##type##_##affix);					\
 	}
 
-GEN_DEF_TESTER( , c_1p_thumb_rom);
-GEN_DEF_TESTER( , c_8p_thumb_rom);
+#define GEN_DEF_TESTER_B1(codesec, affix) GEN_DEF_TESTER_BASE(codesec, b1cts, affix)
 
-GEN_DEF_TESTER( , c_1p_arm_rom);
-GEN_DEF_TESTER( , c_8p_arm_rom);
+GEN_DEF_TESTER_B1( , c_1p_thumb_rom);
+GEN_DEF_TESTER_B1( , c_8p_thumb_rom);
 
-GEN_DEF_TESTER(IWRAM_CODE, c_1p_thumb_iwram);
-GEN_DEF_TESTER(IWRAM_CODE, c_8p_thumb_iwram);
+GEN_DEF_TESTER_B1( , c_1p_arm_rom);
+GEN_DEF_TESTER_B1( , c_8p_arm_rom);
 
-GEN_DEF_TESTER(IWRAM_CODE, c_1p_arm_iwram);
-GEN_DEF_TESTER(IWRAM_CODE, c_8p_arm_iwram);
+GEN_DEF_TESTER_B1(IWRAM_CODE, c_1p_thumb_iwram);
+GEN_DEF_TESTER_B1(IWRAM_CODE, c_8p_thumb_iwram);
 
-GEN_DEF_TESTER(IWRAM_CODE, asm_1p_arm_iwram);
-GEN_DEF_TESTER(IWRAM_CODE, asm_8p_arm_iwram);
+GEN_DEF_TESTER_B1(IWRAM_CODE, c_1p_arm_iwram);
+GEN_DEF_TESTER_B1(IWRAM_CODE, c_8p_arm_iwram);
 
+GEN_DEF_TESTER_B1(IWRAM_CODE, asm_1p_arm_iwram);
+GEN_DEF_TESTER_B1(IWRAM_CODE, asm_8p_arm_iwram);
+
+#if FEATURE_FONT_BPP == 1
 Profiler g_testCases[] = 
 {
 	{	"null",				prof_null_drawg, 0 }, 
@@ -92,6 +98,37 @@ Profiler g_testCases[] =
 	{	"c_8p_arm_iw",		prof_chr4c_drawg_b1cts_c_8p_arm_iwram, 0 }, 
 	{	"asm_8p_arm_iw",	prof_chr4c_drawg_b1cts_asm_8p_arm_iwram, 0 }, 
 };
+
+#elif FEATURE_FONT_BPP == 2
+// b2ts testers
+GEN_DEF_TESTER_BASE(IWRAM_CODE, b2ts, c_1p_arm_iwram);
+GEN_DEF_TESTER_BASE(IWRAM_CODE, b2ts, c_8p_arm_iwram);
+
+Profiler g_testCases[] = 
+{
+	{	"null",				prof_null_drawg, 0 }, 
+	{	"c_1p_arm_iw",		prof_chr4c_drawg_b2ts_c_1p_arm_iwram, 0 }, 
+	{	"c_8p_arm_iw",		prof_chr4c_drawg_b2ts_c_8p_arm_iwram, 0 }, 
+};
+
+#elif FEATURE_FONT_BPP == 4
+// b4ts testers
+GEN_DEF_TESTER_BASE(IWRAM_CODE, b4ts, c_1p_arm_iwram);
+GEN_DEF_TESTER_BASE(IWRAM_CODE, b4ts, c_8p_arm_iwram);
+GEN_DEF_TESTER_BASE(IWRAM_CODE, b4ts, asm_8p_arm_iwram);
+
+Profiler g_testCases[] = 
+{
+	{	"null",				prof_null_drawg, 0 }, 
+	{	"c_1p_arm_iw",		prof_chr4c_drawg_b4ts_c_1p_arm_iwram, 0 }, 
+	{	"c_8p_arm_iw",		prof_chr4c_drawg_b4ts_c_8p_arm_iwram, 0 }, 
+	{	"asm_8p_arm_iw",	prof_chr4c_drawg_b4ts_asm_8p_arm_iwram, 0 }, 
+};
+
+#else
+	#error Unsupported font BPP.
+
+#endif
 
 TFont g_font;
 
@@ -216,7 +253,17 @@ void test_speeds()
 	g_font = vwf_default;
 #endif
 
+#if FEATURE_FONT_BPP == 2
+	g_font = verdana9_2bFont;
+#elif FEATURE_FONT_BPP == 4
+	g_font = verdana9_4bFont;
+#else
+	g_font = vwf_default;
+#endif
+
 	// --- Setup checkers ---
+	pal_bg_bank[15][1] = CLR_YELLOW;
+	pal_bg_bank[15][2] = RGB15(24, 24, 2);
 	pal_bg_bank[15][15] = CLR_GRAY;
 	test_check_render_init();
 
@@ -283,6 +330,7 @@ int main()
 	irq_add(II_VBLANK, NULL);
 
 	test_speeds();
+	//test_unpack();
 
 	while(1)
 		VBlankIntrWait();
