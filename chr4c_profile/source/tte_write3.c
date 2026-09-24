@@ -31,25 +31,28 @@ int tte_write3(const char *text)
 			// Escaped command: skip '\\' and print '#'
 			ch= *str++;
 		}
-		
-		if (ch == '\r')
+
+		if (ch < ' ')
 		{
-			if(str[0] == '\n')	// deal with CRLF pair
-				str++;
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
-			continue;
-		}
-		else if (ch =='\n')
-		{
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
-			continue;
-		}
-		else if (ch == '\t')
-		{
-			tc->cursorX= (tc->cursorX/TTE_TAB_WIDTH+1)*TTE_TAB_WIDTH;
-			continue;
+			if (ch == '\r')
+			{
+				if(str[0] == '\n')	// deal with CRLF pair
+					str++;
+				tc->cursorY += tc->font->charH;
+				tc->cursorX  = tc->marginLeft;
+				continue;
+			}
+			else if (ch =='\n')
+			{
+				tc->cursorY += tc->font->charH;
+				tc->cursorX  = tc->marginLeft;
+				continue;
+			}
+			else if (ch == '\t')
+			{
+				tc->cursorX= (tc->cursorX/TTE_TAB_WIDTH+1)*TTE_TAB_WIDTH;
+				continue;
+			}
 		}
 		else if (ch >= 0x80)
 		{
