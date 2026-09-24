@@ -20,9 +20,14 @@
 
 #define FEATURE_KEY_WAIT() 1
 
-#define FEATURE_TTE_WRITE_IWRAM() 0
+#define FEATURE_TTE_WRITE_ORG 0
+#define FEATURE_TTE_WRITE_IWRAM 2
+#define FEATURE_TTE_WRITE_ALT 3
 
-#define FEATURE_FONT_BPP 4
+
+#define FEATURE_TTE_WRITE_MODE() FEATURE_TTE_WRITE_ALT
+
+#define FEATURE_FONT_BPP 1
 
 CSTR c_glados[] = 
 {
@@ -154,10 +159,12 @@ void prof_draws(Profiler *prof, const char *str)
 	VBlankIntrWait();
 
 	profile_start();
-#if FEATURE_TTE_WRITE_IWRAM() == 1
+#if FEATURE_TTE_WRITE_MODE() == FEATURE_TTE_WRITE_IWRAM
 	IWRAM_CODE int tte_write2(const char *text);
-
 	tte_write2(str);
+#elif FEATURE_TTE_WRITE_MODE() == FEATURE_TTE_WRITE_ALT
+	int tte_write3(const char *text);
+	tte_write3(str);
 #else
 	tte_write(str);
 #endif
