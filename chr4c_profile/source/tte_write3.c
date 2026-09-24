@@ -20,6 +20,16 @@ int tte_write3(const char *text)
 	while( (ch=*str) != '\0' )
 	{
 		str++;
+
+		if(ch=='#' && str[0]=='{')
+		{
+			str= tte_cmd_default(str+1);
+			continue;
+		}
+		// Escaped command: skip '\\' and print '#'
+		else if(ch=='\\' && str[0]=='#')
+			ch= *str++;
+		
 		switch(ch)
 		{
 		// --- Newline/carriage return ---
@@ -38,17 +48,8 @@ int tte_write3(const char *text)
 
 		// --- Normal char ---
 		default:
-			// Command sequence
-			if(ch=='#' && str[0]=='{')
-			{
-				str= tte_cmd_default(str+1);
-				break;
-			}
-			// Escaped command: skip '\\' and print '#'
-			else if(ch=='\\' && str[0]=='#')
-				ch= *str++;
 			// Check for UTF8 code
-			else if(ch>=0x80)
+			if(ch>=0x80)
 				ch= utf8_decode_char(str-1, &str);
 
 			// Get glyph index and call renderer
