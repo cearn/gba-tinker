@@ -21,18 +21,18 @@ int tte_write3(const char *text)
 	{
 		str++;
 
-		if(ch=='#' && str[0]=='{')
+		if(__builtin_expect(ch=='#' && str[0]=='{', 0))
 		{
 			str= tte_cmd_default(str+1);
 			continue;
 		}
-		else if(ch=='\\' && str[0]=='#')
+		else if(__builtin_expect(ch=='\\' && str[0]=='#', 0))
 		{
 			// Escaped command: skip '\\' and print '#'
 			ch= *str++;
 		}
 
-		if (ch < ' ')
+		if (__builtin_expect(ch < ' ', 0))
 		{
 			if (ch == '\r')
 			{
