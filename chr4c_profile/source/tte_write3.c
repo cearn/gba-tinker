@@ -31,7 +31,8 @@ int tte_write3(const char *text)
 			// Escaped command: skip '\\' and print '#'
 			ch= *str++;
 		}
-		else if (ch == '\r')
+		
+		if (ch == '\r')
 		{
 			if(str[0] == '\n')	// deal with CRLF pair
 				str++;
