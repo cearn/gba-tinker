@@ -18,7 +18,7 @@
 #define FEATURE_FONT_BOLD 2
 #define FEATURE_FONT() 0
 
-#define FEATURE_KEY_WAIT() 1
+#define FEATURE_KEY_WAIT() 0
 
 #define FEATURE_TTE_WRITE_ORG 0
 #define FEATURE_TTE_WRITE_IWRAM 2
@@ -163,8 +163,8 @@ void prof_draws(Profiler *prof, const char *str)
 	IWRAM_CODE int tte_write2(const char *text);
 	tte_write2(str);
 #elif FEATURE_TTE_WRITE_MODE() == FEATURE_TTE_WRITE_ALT
-	int tte_write3(const char *text);
-	tte_write3(str);
+	int tte_write_a3x(const char *text);
+	tte_write_a3x(str);
 #else
 	tte_write(str);
 #endif
