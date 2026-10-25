@@ -29,6 +29,9 @@
 // Use a shiftmask instead of a right-test [1]
 #define FEATURE_8P_MASK_TEST() 1
 
+/// Expand ink x8 early, then mask off in loop.
+#define FEATURE_8P_INK_MASK() 0
+
 // Use an inline plotter for 1p [1]
 #define FEATURE_1P_INLINE() 1
 
@@ -87,6 +90,11 @@ GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 	uint right = x+charW;
 #endif
 
+#if FEATURE_8P_INK_MASK() == 1
+	ink  = mask * ink;
+	ink |= ink<<4;
+#endif
+
 	uint iy;
 	for(uint iw=0; iw<charW; iw += 8)	// Loop over strips
 	{
@@ -106,8 +114,11 @@ GEN_CODE_SEC void GEN_PROCNAME_8P (uint gid)
 				px   = raw | px<<3;
 
 				pxmask = px*15;
+#if FEATURE_8P_INK_MASK() == 1
+				px = ink & pxmask;
+#else
 				px  *= ink;
-
+#endif
 				// Write left tile:
 				dstL[0] = (dstL[0] &~ (pxmask<<lsl) ) | (px<<lsl);
 

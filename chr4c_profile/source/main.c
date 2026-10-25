@@ -25,7 +25,7 @@
 #define FEATURE_TTE_WRITE_ALT 3
 
 
-#define FEATURE_TTE_WRITE_MODE() FEATURE_TTE_WRITE_ALT
+#define FEATURE_TTE_WRITE_MODE() FEATURE_TTE_WRITE_ORG
 
 #define FEATURE_FONT_BPP 1
 
@@ -48,6 +48,27 @@ CSTR c_glados[] =
 
 "I invited your best friend the companion "
 "cube. Of course, he couldn't come because you murdered him."
+};
+
+CSTR c_glados_up[] = 
+{
+"PLEASE NOTE THAT WE HAVE ADDED A CONSEQUENCE FOR FAILURE. "
+	"ANY CONTACT WITH THE CHAMBER FLOOR WILL RESULT IN AN "
+	"'UNSATISFACTORY' MARK ON YOUR OFFICIAL TESTING RECORD "
+	"FOLLOWED BY DEATH. GOOD LUCK!", 
+
+"ASSUME THE PARTY ESCORT SUBMISSION "
+	"POSITION OR YOU WILL MISS THE PARTY.", 
+"OKAY. THE TEST IS OVER. YOU WIN. "
+	"GO BACK TO THE RECOVERY ANNEX. "
+	"FOR YOUR CAKE.", 
+
+"[PAIN NOISE] YOU THINK YOU'RE DOING "
+"SOME DAMAGE? TWO PLUS TWO IS TEN... "
+	"IN BASE FOUR! I'M FINE!", 
+
+"I INVITED YOUR BEST FRIEND THE COMPANION "
+"CUBE. OF COURSE, HE COULDN'T COME BECAUSE YOU MURDERED HIM."
 };
 
 typedef struct Profiler Profiler;
@@ -205,7 +226,7 @@ void test_check_render_init()
 	
 	Profiler prof = {};
 	tte_erase_screen();
-	prof_draws(&prof, c_glados[0]);
+	prof_draws(&prof, c_glados_up[0]);
 	
 	// Copy (0, 24) - (240, 160) to VRAM+6000h for later comparison.
 	const uint row0 = 3;
@@ -255,7 +276,7 @@ void test_speeds()
 	RegisterRamReset(RESET_GFX);
 
 	// --- Setup render ---
-	const char *str = c_glados[0];
+	const char *str = c_glados_up[0];
 	const uint len = strlen(str);
 
 #if FEATURE_FONT() == FEATURE_FONT_BOLD

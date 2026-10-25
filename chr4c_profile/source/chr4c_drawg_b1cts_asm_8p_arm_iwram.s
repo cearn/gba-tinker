@@ -17,6 +17,9 @@
 /// For old version: test for right-rendering with a mask instead of the right boundary. [1]
 #define FEATURE_MASK_TEST() 1
 
+/// Expand ink x8 early, then mask off in loop.
+#define FEATURE_8P_INK_MASK() 0
+
 /// For old version: use mask-test for left bound as well. Makes it slower. [0]
 #define FEATURE_MASK_LEFT_CND() 0
 
@@ -63,6 +66,11 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 	orr		r6, r6, r6, lsl #16
 	orr		r6, r6, r6, lsl #8
 
+#if FEATURE_8P_INK_MASK() == 1
+	orr		r7, r7, r7, lsl #4
+	mul		r7, r6, r7
+#endif
+
 	@ Move base to bottom of char.
 	add		r0, r0, r2, lsl #2		@ r0 += charH
 	neg		r2, r2					@ r2 = -charH
@@ -108,7 +116,11 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 			orr		r3, r3, r4, lsl #3
 
 			rsb		r5, r3, r3, lsl #4
+#if FEATURE_8P_INK_MASK() == 1
+			and		r4, r5, r7
+#else
 			mul		r4, r3, r7
+#endif
 			
 			@ Left tile
 			ldr		r3, [r0, r2, lsl #2]
@@ -134,6 +146,10 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 #if FEATURE_SMALL_SPECIAL() == 1
 .Lleft_only:
 	ldr		r6,=0x01010101
+#if FEATURE_8P_INK_MASK() == 1
+	mul		r7, r6, r7
+	orr		r7, r7, r7, lsl #4
+#endif
 	sub		r2, r2, #1
 .Lleft_only_yloop:
 		@ Prep px and pxmask
@@ -146,7 +162,11 @@ BEGIN_FUNC_ARM(chr4c_drawg_b1cts_asm_8p_arm_iwram, CSEC_IWRAM)
 		orr		r3, r3, r4, lsl #3
 
 		rsb		r5, r3, r3, lsl #4
+#if FEATURE_8P_INK_MASK() == 1
+		and		r4, r5, r7
+#else
 		mul		r4, r3, r7
+#endif
 
 		@ left tile
 		ldr		r3, [r0, r2, lsl #2]

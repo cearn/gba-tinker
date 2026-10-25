@@ -6,6 +6,24 @@
 
 uint utf8_decode_char(const char *ptr, char **endptr);
 
+INLINE void _tte_newline(TTC* tc)
+{
+	tc->cursorY += tc->font->charH;
+	tc->cursorX  = tc->marginLeft;
+}
+
+#if 0
+	ldr	r3, [r4, #24]
+	ldrh	r2, [r4, #22]
+	ldrb	r3, [r3, #17]
+	adds	r3, r3, r2
+	strh	r3, [r4, #22]
+	ldrh	r3, [r4, #44]
+	movs	r0, r5
+	strh	r3, [r4, #20]
+	b	.L8
+#endif
+
 /// Original.
 int	tte_write_a(const char *text)
 {
@@ -28,8 +46,7 @@ int	tte_write_a(const char *text)
 				str++;
 			// FALLTHRU
 		case '\n':
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			break;
 		// --- Tab ---
 		case '\t':
@@ -60,10 +77,7 @@ int	tte_write_a(const char *text)
 			// Character wrap
 			int charW= font->widths ? font->widths[gid] : font->charW;
 			if(tc->cursorX+charW > tc->marginRight)
-			{
-				tc->cursorY += font->charH;
-				tc->cursorX  = tc->marginLeft;
-			}
+				_tte_newline(tc);
 
 			// Draw and update position
 			tc->drawgProc(gid);
@@ -94,15 +108,13 @@ int	tte_write_a2(const char *text)
 			// --- Newline/carriage return ---
 			if(str[0] == '\n')	// deal with CRLF pair
 				str++;
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (ch == '\n')
 		{
 			// Just newline.
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (ch == '\t')
@@ -138,10 +150,7 @@ int	tte_write_a2(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
 
 		// Draw and update position
 		tc->drawgProc(gid);
@@ -171,15 +180,13 @@ int	tte_write_a2x(const char *text)
 			// --- Newline/carriage return ---
 			if(str[0] == '\n')	// deal with CRLF pair
 				str++;
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (UNLIKELY(ch == '\n'))
 		{
 			// Just newline.
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (UNLIKELY(ch == '\t'))
@@ -215,10 +222,7 @@ int	tte_write_a2x(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
 
 		// Draw and update position
 		tc->drawgProc(gid);
@@ -243,25 +247,23 @@ int	tte_write_a3x(const char *text)
 	while( (ch=*str) != '\0' )
 	{
 		str++;
-		if (UNLIKELY(ch < ' '))
+		if (UNLIKELY(ch <= '\r'))
 		{
-			if (UNLIKELY(ch == '\r'))
+			if (ch == '\r')
 			{
 				// --- Newline/carriage return ---
 				if(str[0] == '\n')	// deal with CRLF pair
 					str++;
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
-			else if (UNLIKELY(ch == '\n'))
+			else if (ch == '\n')
 			{
 				// Just newline.
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
-			else if (UNLIKELY(ch == '\t'))
+			else if (ch == '\t')
 			{
 				// --- Tab ---
 				tc->cursorX= (tc->cursorX/TTE_TAB_WIDTH+1)*TTE_TAB_WIDTH;
@@ -295,10 +297,8 @@ int	tte_write_a3x(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
+
 
 		// Draw and update position
 		tc->drawgProc(gid);
@@ -331,8 +331,7 @@ int	tte_write_ax(const char *text)
 				str++;
 			// FALLTHRU
 		case '\n':
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			break;
 		// --- Tab ---
 		case '\t':
@@ -363,10 +362,7 @@ int	tte_write_ax(const char *text)
 			// Character wrap
 			int charW= font->widths ? font->widths[gid] : font->charW;
 			if(tc->cursorX+charW > tc->marginRight)
-			{
-				tc->cursorY += font->charH;
-				tc->cursorX  = tc->marginLeft;
-			}
+				_tte_newline(tc);
 
 			// Draw and update position
 			tc->drawgProc(gid);
@@ -408,14 +404,12 @@ int tte_write_b(const char *text)
 		{
 			if(str[0] == '\n')	// deal with CRLF pair
 				str++;
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (ch =='\n')
 		{
-			tc->cursorY += tc->font->charH;
-			tc->cursorX  = tc->marginLeft;
+			_tte_newline(tc);
 			continue;
 		}
 		else if (ch == '\t')
@@ -437,10 +431,7 @@ int tte_write_b(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
 
 		// Draw and update position
 		tc->drawgProc(gid);
@@ -630,14 +621,12 @@ int tte_write_d(const char *text)
 			{
 				if(str[0] == '\n')	// deal with CRLF pair
 					str++;
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
 			else if (ch =='\n')
 			{
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
 			else if (ch == '\t')
@@ -660,10 +649,7 @@ int tte_write_d(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
 
 		// Draw and update position
 		tc->drawgProc(gid);
@@ -708,14 +694,12 @@ int tte_write_dx(const char *text)
 			{
 				if(str[0] == '\n')	// deal with CRLF pair
 					str++;
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
 			else if (ch =='\n')
 			{
-				tc->cursorY += tc->font->charH;
-				tc->cursorX  = tc->marginLeft;
+				_tte_newline(tc);
 				continue;
 			}
 			else if (ch == '\t')
@@ -738,10 +722,7 @@ int tte_write_dx(const char *text)
 		// Character wrap
 		int charW= font->widths ? font->widths[gid] : font->charW;
 		if(tc->cursorX+charW > tc->marginRight)
-		{
-			tc->cursorY += font->charH;
-			tc->cursorX  = tc->marginLeft;
-		}
+			_tte_newline(tc);
 
 		// Draw and update position
 		tc->drawgProc(gid);
